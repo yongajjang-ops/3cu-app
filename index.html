@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3쿠션 당구 연습 노트</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 기본 스타일 */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            margin: 0;
+            padding: 0;
+            touch-action: manipulation;
+        }
+
+        /* 메인 컨테이너 - 모바일 전체 화면 */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            min-height: 100dvh;
+            max-width: 100%;
+        }
+
+        /* 헤더 */
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 16px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            color: #fff;
+            font-size: 18px;
+            margin: 0;
+        }
+
+        /* 탭 네비게이션 */
+        .tab-nav {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #888;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom-color: #4CAF50;
+        }
+
+        /* 탭 콘텐츠 영역 */
+        .tab-content {
+            flex: 1;
+        }
+
+        .tab-panel {
+            display: none;
+            padding: 12px;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* 당구 테이블 캔버스 컨테이너 */
+        .table-container {
+            background: #0d0e10;
+            border-radius: 8px;
+            padding: 6px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.6);
+            margin-bottom: 12px;
+            touch-action: none;
+            -webkit-overflow-scrolling: auto;
+        }
+
+        /* 캔버스 스타일 */
+        #billiardTable {
+            display: block;
+            margin: 0 auto;
+            border-radius: 4px;
+            touch-action: none;
+        }
+
+        /* 메모 입력 영역 */
+        .memo-area {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .memo-area h3 {
+            color: #fff;
+            margin: 0 0 12px 0;
+            font-size: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #aaa;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+        }
+
+        .input-group textarea {
+            min-height: 70px;
+            resize: none;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(145deg, #4CAF50, #388E3C);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .save-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* 저장 목록 패널 */
+        .saved-list-container {
+            padding-bottom: 20px;
+        }
+
+        .saved-list-header {
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 저장된 배치 목록 아이템 */
+        .saved-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .saved-item:active {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .saved-item-content {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .saved-item-thumbnail {
+            width: 100px;
+            height: 50px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: #1a1a2e;
+            flex-shrink: 0;
+        }
+
+        .saved-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .saved-item-header {
+            margin-bottom: 4px;
+        }
+
+        .saved-item-name {
+            color: #fff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .saved-item-date {
+            color: #888;
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        .saved-item-difficulty {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 6px;
+        }
+
+        .difficulty-easy {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .difficulty-medium {
+            background: #FF9800;
+            color: white;
+        }
+
+        .difficulty-hard {
+            background: #f44336;
+            color: white;
+        }
+
+        .saved-item-memo {
+            color: #999;
+            font-size: 11px;
+            margin-top: 4px;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .saved-item-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .item-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .item-btn.load {
+            background: #2196F3;
+            color: white;
+        }
+
+        .item-btn.delete {
+            background: #f44336;
+            color: white;
+        }
+
+        .item-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* 빈 목록 메시지 */
+        .empty-message {
+            color: #888;
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* 알림 토스트 */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            font-size: 14px;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: linear-gradient(145deg, #4CAF50, #388E3C);
+        }
+
+        .toast.error {
+            background: linear-gradient(145deg, #f44336, #d32f2f);
+        }
+
+        /* 삭제 확인 모달 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: #2d2d2d;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 320px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .modal h4 {
+            color: #fff;
+            margin: 0 0 12px 0;
+            font-size: 18px;
+        }
+
+        .modal p {
+            color: #aaa;
+            margin: 0 0 20px 0;
+            font-size: 14px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn.confirm {
+            background: #f44336;
+            color: white;
+        }
+
+        .modal-btn.cancel {
+            background: #666;
+            color: white;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 헤더 -->
+        <div class="header">
+            <h1>3쿠션 당구 연습 노트</h1>
+        </div>
+
+        <!-- 탭 네비게이션 -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('table')">배치</button>
+            <button class="tab-btn" onclick="switchTab('saved')">저장 목록</button>
+        </div>
+
+        <!-- 탭 콘텐츠 -->
+        <div class="tab-content">
+            <!-- 배치 탭 -->
+            <div class="tab-panel active" id="panel-table">
+                <!-- 당구 테이블 (세로 방향) -->
+                <div class="table-container">
+                    <canvas id="billiardTable"></canvas>
+                </div>
+
+                <!-- 메모 입력 영역 -->
+                <div class="memo-area">
+                    <h3>배치 정보</h3>
+                    <div class="input-group">
+                        <label for="layout-name">배치 이름</label>
+                        <input type="text" id="layout-name" placeholder="예: 기본 뱅크샷 연습">
+                    </div>
+                    <div class="input-group">
+                        <label for="layout-memo">메모</label>
+                        <textarea id="layout-memo" placeholder="연습 포인트를 작성하세요..."></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label for="layout-difficulty">난이도</label>
+                        <select id="layout-difficulty">
+                            <option value="easy">쉬움</option>
+                            <option value="medium" selected>보통</option>
+                            <option value="hard">어려움</option>
+                        </select>
+                    </div>
+                    <button class="save-btn" onclick="saveLayout()">저장하기</button>
+                </div>
+            </div>
+
+            <!-- 저장 목록 탭 -->
+            <div class="tab-panel" id="panel-saved">
+                <div class="saved-list-container">
+                    <div class="saved-list-header">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                            <polyline points="7,3 7,8 15,8"></polyline>
+                        </svg>
+                        저장된 배치 목록
+                    </div>
+                    <div id="saved-list">
+                        <!-- 저장된 배치들이 여기에 표시됨 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 삭제 확인 모달 -->
+    <div class="modal-overlay" id="delete-modal">
+        <div class="modal">
+            <h4>배치 삭제</h4>
+            <p>정말로 이 배치를 삭제하시겠습니까?</p>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeDeleteModal()">취소</button>
+                <button class="modal-btn confirm" onclick="confirmDelete()">삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 알림 토스트 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ===== 상수 정의 (PC 버전과 동일한 비율) =====
+        const TABLE_RATIO = 0.54;         // 가로:세로 비율 (1:2, 보정값 적용)
+        const TABLE_COLOR = '#2d7ab8';    // 당구대 파란색
+        const CUSHION_COLOR = '#266a9e';  // 쿠션 색상
+        const RAIL_COLOR = '#3a3d42';     // 레일 색상
+        const FRAME_COLOR = '#1a1c20';    // 외곽 프레임 색상
+
+        // PC 기준값 (750px 너비 기준)
+        const PC_TABLE_WIDTH = 750;
+        const PC_BALL_RADIUS = 10;       // 공 크기 조정
+        const PC_BORDER_WIDTH = 25;
+        const PC_CUSHION_WIDTH = 12;
+
+        // 모바일용 동적 계산 (나중에 resizeCanvas에서 설정)
+        let BALL_RADIUS, BORDER_WIDTH, CUSHION_WIDTH;
+
+        // ===== 상태 변수 =====
+        let canvas, ctx;
+        let tableWidth, tableHeight;
+        let selectedBall = null;
+        let deleteMode = false;
+        let draggingBall = null;
+        let dragOffset = { x: 0, y: 0 };
+        let deleteTargetId = null;
+        let isDragging = false;
+
+        // 공 데이터
+        let balls = {
+            red: null,
+            yellow: null,
+            white: null
+        };
+
+        // ===== 초기화 =====
+        window.onload = function() {
+            initCanvas();
+            initBallPositions();
+            loadSavedList();
+        };
+
+        // 탭 전환
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+
+            if (tab === 'table') {
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                document.getElementById('panel-table').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:last-child').classList.add('active');
+                document.getElementById('panel-saved').classList.add('active');
+            }
+        }
+
+        // 캔버스 초기화
+        function initCanvas() {
+            canvas = document.getElementById('billiardTable');
+            ctx = canvas.getContext('2d');
+
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(resizeCanvas, 100);
+            });
+
+            // 터치 이벤트 (모바일 우선)
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+            // 마우스 이벤트 (데스크톱 폴백)
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('mouseleave', handleMouseUp);
+        }
+
+        // 공 초기 위치 설정 (세로 테이블)
+        function initBallPositions() {
+            const centerX = tableWidth / 2;
+            const playAreaHeight = tableHeight - (BORDER_WIDTH + CUSHION_WIDTH) * 2;
+            const startY = BORDER_WIDTH + CUSHION_WIDTH;
+
+            // 세로 방향: 위에서 아래로 배치 (빨강 → 노랑 → 흰공)
+            balls.red = {
+                x: centerX,
+                y: startY + playAreaHeight * 0.25
+            };
+
+            balls.yellow = {
+                x: centerX,
+                y: startY + playAreaHeight * 0.5
+            };
+
+            balls.white = {
+                x: centerX,
+                y: startY + playAreaHeight * 0.75
+            };
+
+            drawTable();
+        }
+
+        // 캔버스 크기 조정
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const maxWidth = container.clientWidth - 12;
+
+            // 세로 방향 테이블: 너비 기준으로 높이 계산
+            tableWidth = Math.min(maxWidth, 300);
+            tableHeight = tableWidth / TABLE_RATIO;  // 1:2 비율 (세로가 2배)
+
+            // PC 버전 비율에 맞춰 동적 계산 (PC는 750px 기준)
+            const scale = tableWidth / (PC_TABLE_WIDTH / 2);  // 세로 테이블이므로 PC의 절반 너비 기준
+            BALL_RADIUS = PC_BALL_RADIUS * scale;
+            BORDER_WIDTH = PC_BORDER_WIDTH * scale;
+            CUSHION_WIDTH = PC_CUSHION_WIDTH * scale;
+
+            canvas.width = tableWidth;
+            canvas.height = tableHeight;
+
+            // 공 위치 재계산 (비율 유지)
+            if (balls.red || balls.yellow || balls.white) {
+                drawTable();
+            } else {
+                initBallPositions();
+            }
+        }
+
+        // ===== 당구대 그리기 =====
+        function drawTable() {
+            // 1. 외곽 프레임
+            ctx.fillStyle = FRAME_COLOR;
+            ctx.fillRect(0, 0, tableWidth, tableHeight);
+
+            // 2. 레일 영역
+            const frameWidth = 3;
+            ctx.fillStyle = RAIL_COLOR;
+            ctx.fillRect(frameWidth, frameWidth, tableWidth - frameWidth * 2, tableHeight - frameWidth * 2);
+
+            // 3. 쿠션 영역
+            ctx.fillStyle = CUSHION_COLOR;
+            ctx.fillRect(BORDER_WIDTH, BORDER_WIDTH, tableWidth - BORDER_WIDTH * 2, tableHeight - BORDER_WIDTH * 2);
+
+            // 4. 테이블 바닥
+            const playAreaX = BORDER_WIDTH + CUSHION_WIDTH;
+            const playAreaY = BORDER_WIDTH + CUSHION_WIDTH;
+            const playAreaW = tableWidth - (BORDER_WIDTH + CUSHION_WIDTH) * 2;
+            const playAreaH = tableHeight - (BORDER_WIDTH + CUSHION_WIDTH) * 2;
+
+            ctx.fillStyle = TABLE_COLOR;
+            ctx.fillRect(playAreaX, playAreaY, playAreaW, playAreaH);
+
+            // 경계선 효과
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(playAreaX, playAreaY, playAreaW, playAreaH);
+
+            // 5. 그리드 라인
+            drawGridLines(playAreaX, playAreaY, playAreaW, playAreaH);
+
+            // 6. 다이아몬드 마커
+            drawDiamonds();
+
+            // 7. 공 그리기
+            drawBalls();
+        }
+
+        // 그리드 라인 (세로 테이블)
+        function drawGridLines(startX, startY, width, height) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+
+            // 세로 테이블: 가로 4등분, 세로 8등분
+            const hSegments = 4;
+            const vSegments = 8;
+            const hSpacing = width / hSegments;
+            const vSpacing = height / vSegments;
+
+            for (let i = 1; i < hSegments; i++) {
+                const x = startX + i * hSpacing;
+                ctx.beginPath();
+                ctx.moveTo(x, startY);
+                ctx.lineTo(x, startY + height);
+                ctx.stroke();
+            }
+
+            for (let i = 1; i < vSegments; i++) {
+                const y = startY + i * vSpacing;
+                ctx.beginPath();
+                ctx.moveTo(startX, y);
+                ctx.lineTo(startX + width, y);
+                ctx.stroke();
+            }
+
+            ctx.setLineDash([]);
+        }
+
+        // 다이아몬드 마커 (세로 테이블)
+        function drawDiamonds() {
+            const markerSize = 2;
+            // 세로 테이블: 가로(단쿠션) 4등분, 세로(장쿠션) 8등분
+            const horizontalSegments = 4;
+            const verticalSegments = 8;
+
+            const playAreaWidth = tableWidth - (BORDER_WIDTH + CUSHION_WIDTH) * 2;
+            const playAreaHeight = tableHeight - (BORDER_WIDTH + CUSHION_WIDTH) * 2;
+
+            const hSpacing = playAreaWidth / horizontalSegments;
+            const vSpacing = playAreaHeight / verticalSegments;
+
+            const markerYTop = BORDER_WIDTH / 2 + 1;
+            const markerYBottom = tableHeight - BORDER_WIDTH / 2 - 1;
+            const markerXLeft = BORDER_WIDTH / 2 + 1;
+            const markerXRight = tableWidth - BORDER_WIDTH / 2 - 1;
+
+            const playStartX = BORDER_WIDTH + CUSHION_WIDTH;
+            const playStartY = BORDER_WIDTH + CUSHION_WIDTH;
+
+            // 상단/하단 마커 (단쿠션)
+            for (let i = 0; i <= horizontalSegments; i++) {
+                const x = playStartX + i * hSpacing;
+                drawDiamondMarker(x, markerYTop, markerSize);
+                drawDiamondMarker(x, markerYBottom, markerSize);
+            }
+
+            // 좌측/우측 마커 (장쿠션)
+            for (let i = 0; i <= verticalSegments; i++) {
+                const y = playStartY + i * vSpacing;
+                drawDiamondMarker(markerXLeft, y, markerSize);
+                drawDiamondMarker(markerXRight, y, markerSize);
+            }
+        }
+
+        function drawDiamondMarker(x, y, size) {
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fillStyle = '#e8e8e8';
+            ctx.fill();
+        }
+
+        // 공 그리기
+        function drawBalls() {
+            for (const [color, ball] of Object.entries(balls)) {
+                if (ball) {
+                    drawBall(ball.x, ball.y, color);
+                }
+            }
+        }
+
+        function drawBall(x, y, color) {
+            const colors = {
+                red: { main: '#cc2222', light: '#ff5555', dark: '#991111' },
+                yellow: { main: '#e6a800', light: '#ffc033', dark: '#b38600' },
+                white: { main: '#d0d0d0', light: '#ffffff', dark: '#a0a0a0' }
+            };
+
+            const c = colors[color];
+
+            const gradient = ctx.createRadialGradient(
+                x - BALL_RADIUS * 0.35,
+                y - BALL_RADIUS * 0.35,
+                BALL_RADIUS * 0.1,
+                x, y, BALL_RADIUS
+            );
+            gradient.addColorStop(0, c.light);
+            gradient.addColorStop(0.6, c.main);
+            gradient.addColorStop(1, c.dark);
+
+            ctx.beginPath();
+            ctx.arc(x, y, BALL_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+        }
+
+        // ===== 터치 이벤트 처리 =====
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+
+            isDragging = false;
+
+            // 드래그 시작
+            const clickedBall = getBallAtPosition(x, y);
+            if (clickedBall) {
+                draggingBall = clickedBall;
+                dragOffset.x = x - balls[clickedBall].x;
+                dragOffset.y = y - balls[clickedBall].y;
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();  // 항상 스크롤 방지
+            if (!draggingBall) return;
+
+            isDragging = true;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            let x = touch.clientX - rect.left - dragOffset.x;
+            let y = touch.clientY - rect.top - dragOffset.y;
+
+            const innerBound = BORDER_WIDTH + CUSHION_WIDTH + BALL_RADIUS;
+            x = Math.max(innerBound, Math.min(tableWidth - innerBound, x));
+            y = Math.max(innerBound, Math.min(tableHeight - innerBound, y));
+
+            balls[draggingBall].x = x;
+            balls[draggingBall].y = y;
+
+            drawTable();
+        }
+
+        function handleTouchEnd(e) {
+            draggingBall = null;
+            isDragging = false;
+        }
+
+        // ===== 마우스 이벤트 처리 =====
+        function handleMouseDown(e) {
+            if (selectedBall || deleteMode) {
+                handleCanvasClick(e);
+                return;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const clickedBall = getBallAtPosition(x, y);
+            if (clickedBall) {
+                draggingBall = clickedBall;
+                dragOffset.x = x - balls[clickedBall].x;
+                dragOffset.y = y - balls[clickedBall].y;
+            }
+        }
+
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (deleteMode) {
+                const clickedBall = getBallAtPosition(x, y);
+                if (clickedBall) {
+                    balls[clickedBall] = null;
+                    drawTable();
+                    showToast('공이 삭제되었습니다');
+                }
+                return;
+            }
+
+            if (selectedBall && isInsideTable(x, y)) {
+                balls[selectedBall] = { x, y };
+                drawTable();
+                document.getElementById(`btn-${selectedBall}`).classList.remove('active');
+                selectedBall = null;
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (!draggingBall) return;
+
+            const rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left - dragOffset.x;
+            let y = e.clientY - rect.top - dragOffset.y;
+
+            const innerBound = BORDER_WIDTH + CUSHION_WIDTH + BALL_RADIUS;
+            x = Math.max(innerBound, Math.min(tableWidth - innerBound, x));
+            y = Math.max(innerBound, Math.min(tableHeight - innerBound, y));
+
+            balls[draggingBall].x = x;
+            balls[draggingBall].y = y;
+
+            drawTable();
+        }
+
+        function handleMouseUp() {
+            draggingBall = null;
+        }
+
+        // ===== 유틸리티 함수 =====
+        function getBallAtPosition(x, y) {
+            const touchRadius = BALL_RADIUS * 1.5; // 터치 영역 확대
+            for (const [color, ball] of Object.entries(balls)) {
+                if (ball) {
+                    const distance = Math.sqrt(Math.pow(x - ball.x, 2) + Math.pow(y - ball.y, 2));
+                    if (distance <= touchRadius) {
+                        return color;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function isInsideTable(x, y) {
+            const innerBound = BORDER_WIDTH + CUSHION_WIDTH + BALL_RADIUS;
+            return x > innerBound &&
+                   x < tableWidth - innerBound &&
+                   y > innerBound &&
+                   y < tableHeight - innerBound;
+        }
+
+        // ===== 초기화 =====
+        function resetTable() {
+            balls = { red: null, yellow: null, white: null };
+            selectedBall = null;
+            deleteMode = false;
+
+            document.querySelectorAll('.ball-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-delete-mode').classList.remove('active');
+
+            document.getElementById('layout-name').value = '';
+            document.getElementById('layout-memo').value = '';
+            document.getElementById('layout-difficulty').value = 'medium';
+
+            drawTable();
+            showToast('초기화되었습니다');
+        }
+
+        // ===== 저장 기능 =====
+        function saveLayout() {
+            const name = document.getElementById('layout-name').value.trim();
+            const memo = document.getElementById('layout-memo').value.trim();
+            const difficulty = document.getElementById('layout-difficulty').value;
+
+            if (!name) {
+                showToast('배치 이름을 입력해주세요', 'error');
+                return;
+            }
+
+            if (!balls.red && !balls.yellow && !balls.white) {
+                showToast('최소 하나의 공을 배치해주세요', 'error');
+                return;
+            }
+
+            // 테이블 이미지 캡처 (90도 반시계 방향 회전)
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = canvas.height;
+            tempCanvas.height = canvas.width;
+            tempCtx.translate(0, tempCanvas.height);
+            tempCtx.rotate(-Math.PI / 2);
+            tempCtx.drawImage(canvas, 0, 0);
+            const thumbnail = tempCanvas.toDataURL('image/png');
+
+            const layout = {
+                id: Date.now(),
+                name: name,
+                memo: memo,
+                difficulty: difficulty,
+                balls: JSON.parse(JSON.stringify(balls)),
+                date: new Date().toLocaleDateString('ko-KR'),
+                tableSize: { width: tableWidth, height: tableHeight },
+                thumbnail: thumbnail
+            };
+
+            let layouts = JSON.parse(localStorage.getItem('3cu-layouts') || '[]');
+            layouts.unshift(layout);
+            localStorage.setItem('3cu-layouts', JSON.stringify(layouts));
+
+            loadSavedList();
+
+            document.getElementById('layout-name').value = '';
+            document.getElementById('layout-memo').value = '';
+
+            showToast('저장되었습니다!', 'success');
+        }
+
+        // ===== 저장 목록 불러오기 =====
+        function loadSavedList() {
+            const container = document.getElementById('saved-list');
+            const layouts = JSON.parse(localStorage.getItem('3cu-layouts') || '[]');
+
+            if (layouts.length === 0) {
+                container.innerHTML = '<div class="empty-message">저장된 배치가 없습니다.<br><br>공을 배치하고 저장해보세요!</div>';
+                return;
+            }
+
+            container.innerHTML = layouts.map(layout => {
+                const difficultyClass = {
+                    easy: 'difficulty-easy',
+                    medium: 'difficulty-medium',
+                    hard: 'difficulty-hard'
+                }[layout.difficulty];
+
+                const difficultyLabel = {
+                    easy: '쉬움',
+                    medium: '보통',
+                    hard: '어려움'
+                }[layout.difficulty];
+
+                return `
+                    <div class="saved-item">
+                        <div class="saved-item-content">
+                            ${layout.thumbnail ? `<img class="saved-item-thumbnail" src="${layout.thumbnail}" alt="미리보기">` : ''}
+                            <div class="saved-item-info">
+                                <div class="saved-item-header">
+                                    <div class="saved-item-name">${escapeHtml(layout.name)}</div>
+                                    <span class="saved-item-difficulty ${difficultyClass}">${difficultyLabel}</span>
+                                </div>
+                                <div class="saved-item-date">${layout.date}</div>
+                                ${layout.memo ? `<div class="saved-item-memo">${escapeHtml(layout.memo)}</div>` : ''}
+                            </div>
+                        </div>
+                        <div class="saved-item-buttons">
+                            <button class="item-btn load" onclick="loadLayout(${layout.id})">불러오기</button>
+                            <button class="item-btn delete" onclick="showDeleteModal(${layout.id})">삭제</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ===== 배치 불러오기 =====
+        function loadLayout(id) {
+            const layouts = JSON.parse(localStorage.getItem('3cu-layouts') || '[]');
+            const layout = layouts.find(l => l.id === id);
+
+            if (!layout) {
+                showToast('배치를 찾을 수 없습니다', 'error');
+                return;
+            }
+
+            const savedSize = layout.tableSize || { width: tableWidth, height: tableHeight };
+            const scaleX = tableWidth / savedSize.width;
+            const scaleY = tableHeight / savedSize.height;
+
+            balls = {
+                red: layout.balls.red ? {
+                    x: layout.balls.red.x * scaleX,
+                    y: layout.balls.red.y * scaleY
+                } : null,
+                yellow: layout.balls.yellow ? {
+                    x: layout.balls.yellow.x * scaleX,
+                    y: layout.balls.yellow.y * scaleY
+                } : null,
+                white: layout.balls.white ? {
+                    x: layout.balls.white.x * scaleX,
+                    y: layout.balls.white.y * scaleY
+                } : null
+            };
+
+            document.getElementById('layout-name').value = layout.name;
+            document.getElementById('layout-memo').value = layout.memo || '';
+            document.getElementById('layout-difficulty').value = layout.difficulty;
+
+            drawTable();
+            switchTab('table');
+            showToast('배치를 불러왔습니다', 'success');
+        }
+
+        // ===== 삭제 모달 =====
+        function showDeleteModal(id) {
+            deleteTargetId = id;
+            document.getElementById('delete-modal').classList.add('show');
+        }
+
+        function closeDeleteModal() {
+            deleteTargetId = null;
+            document.getElementById('delete-modal').classList.remove('show');
+        }
+
+        function confirmDelete() {
+            if (!deleteTargetId) return;
+
+            let layouts = JSON.parse(localStorage.getItem('3cu-layouts') || '[]');
+            layouts = layouts.filter(l => l.id !== deleteTargetId);
+            localStorage.setItem('3cu-layouts', JSON.stringify(layouts));
+
+            loadSavedList();
+            closeDeleteModal();
+            showToast('삭제되었습니다');
+        }
+
+        // ===== 토스트 알림 =====
+        function showToast(message, type = '') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + type;
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
