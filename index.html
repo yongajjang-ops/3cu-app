@@ -459,6 +459,7 @@
                         <textarea id="layout-memo" placeholder="연습 포인트를 작성하세요..."></textarea>
                     </div>
                     <button class="save-btn" onclick="saveLayout()">저장하기</button>
+                    <button class="save-btn" style="margin-top: 10px; background: linear-gradient(145deg, #2196F3, #1976D2);" onclick="saveAsImage()">이미지로 저장</button>
                 </div>
             </div>
 
@@ -1058,6 +1059,33 @@
             loadSavedList();
             closeDeleteModal();
             showToast('삭제되었습니다');
+        }
+
+        // ===== 이미지 저장 =====
+        function saveAsImage() {
+            if (!balls.red && !balls.yellow && !balls.white) {
+                showToast('최소 하나의 공을 배치해주세요', 'error');
+                return;
+            }
+
+            // 캔버스를 90도 반시계 방향 회전하여 가로 이미지로 저장
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = canvas.height;
+            tempCanvas.height = canvas.width;
+            tempCtx.translate(0, tempCanvas.height);
+            tempCtx.rotate(-Math.PI / 2);
+            tempCtx.drawImage(canvas, 0, 0);
+
+            // 이미지 다운로드
+            const link = document.createElement('a');
+            const layoutName = document.getElementById('layout-name').value || '당구배치';
+            const timestamp = new Date().toISOString().slice(0, 10);
+            link.download = `${layoutName}_${timestamp}.png`;
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+
+            showToast('이미지가 저장되었습니다!', 'success');
         }
 
         // ===== 토스트 알림 =====
