@@ -205,8 +205,8 @@
 
         .saved-item-content {
             display: flex;
-            gap: 12px;
-            margin-bottom: 10px;
+            gap: 10px;
+            align-items: center;
         }
 
         .saved-item-thumbnail {
@@ -277,18 +277,20 @@
 
         .saved-item-buttons {
             display: flex;
-            gap: 8px;
+            flex-direction: column;
+            gap: 4px;
+            flex-shrink: 0;
         }
 
         .item-btn {
-            flex: 1;
-            padding: 10px;
+            padding: 6px 10px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: bold;
             transition: all 0.2s ease;
+            white-space: nowrap;
         }
 
         .item-btn.load {
@@ -442,19 +444,19 @@
                     <h3>배치 정보</h3>
                     <div class="input-group">
                         <label for="layout-name">배치 이름</label>
-                        <input type="text" id="layout-name" placeholder="예: 기본 뱅크샷 연습">
+                        <select id="layout-name">
+                            <option value="뒤돌">뒤돌</option>
+                            <option value="옆돌">옆돌</option>
+                            <option value="앞돌">앞돌</option>
+                            <option value="비껴">비껴</option>
+                            <option value="뱅크">뱅크</option>
+                            <option value="스트록">스트록</option>
+                            <option value="기타">기타</option>
+                        </select>
                     </div>
                     <div class="input-group">
                         <label for="layout-memo">메모</label>
                         <textarea id="layout-memo" placeholder="연습 포인트를 작성하세요..."></textarea>
-                    </div>
-                    <div class="input-group">
-                        <label for="layout-difficulty">난이도</label>
-                        <select id="layout-difficulty">
-                            <option value="easy">쉬움</option>
-                            <option value="medium" selected>보통</option>
-                            <option value="hard">어려움</option>
-                        </select>
                     </div>
                     <button class="save-btn" onclick="saveLayout()">저장하기</button>
                 </div>
@@ -912,9 +914,8 @@
             document.querySelectorAll('.ball-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('btn-delete-mode').classList.remove('active');
 
-            document.getElementById('layout-name').value = '';
+            document.getElementById('layout-name').value = '뒤돌';
             document.getElementById('layout-memo').value = '';
-            document.getElementById('layout-difficulty').value = 'medium';
 
             drawTable();
             showToast('초기화되었습니다');
@@ -922,14 +923,8 @@
 
         // ===== 저장 기능 =====
         function saveLayout() {
-            const name = document.getElementById('layout-name').value.trim();
+            const name = document.getElementById('layout-name').value;
             const memo = document.getElementById('layout-memo').value.trim();
-            const difficulty = document.getElementById('layout-difficulty').value;
-
-            if (!name) {
-                showToast('배치 이름을 입력해주세요', 'error');
-                return;
-            }
 
             if (!balls.red && !balls.yellow && !balls.white) {
                 showToast('최소 하나의 공을 배치해주세요', 'error');
@@ -950,7 +945,6 @@
                 id: Date.now(),
                 name: name,
                 memo: memo,
-                difficulty: difficulty,
                 balls: JSON.parse(JSON.stringify(balls)),
                 date: new Date().toLocaleDateString('ko-KR'),
                 tableSize: { width: tableWidth, height: tableHeight },
@@ -980,34 +974,19 @@
             }
 
             container.innerHTML = layouts.map(layout => {
-                const difficultyClass = {
-                    easy: 'difficulty-easy',
-                    medium: 'difficulty-medium',
-                    hard: 'difficulty-hard'
-                }[layout.difficulty];
-
-                const difficultyLabel = {
-                    easy: '쉬움',
-                    medium: '보통',
-                    hard: '어려움'
-                }[layout.difficulty];
-
                 return `
                     <div class="saved-item">
                         <div class="saved-item-content">
                             ${layout.thumbnail ? `<img class="saved-item-thumbnail" src="${layout.thumbnail}" alt="미리보기">` : ''}
                             <div class="saved-item-info">
-                                <div class="saved-item-header">
-                                    <div class="saved-item-name">${escapeHtml(layout.name)}</div>
-                                    <span class="saved-item-difficulty ${difficultyClass}">${difficultyLabel}</span>
-                                </div>
+                                <div class="saved-item-name">${escapeHtml(layout.name)}</div>
                                 <div class="saved-item-date">${layout.date}</div>
                                 ${layout.memo ? `<div class="saved-item-memo">${escapeHtml(layout.memo)}</div>` : ''}
                             </div>
-                        </div>
-                        <div class="saved-item-buttons">
-                            <button class="item-btn load" onclick="loadLayout(${layout.id})">불러오기</button>
-                            <button class="item-btn delete" onclick="showDeleteModal(${layout.id})">삭제</button>
+                            <div class="saved-item-buttons">
+                                <button class="item-btn load" onclick="loadLayout(${layout.id})">불러오기</button>
+                                <button class="item-btn delete" onclick="showDeleteModal(${layout.id})">삭제</button>
+                            </div>
                         </div>
                     </div>
                 `;
