@@ -458,8 +458,10 @@
                         <label for="layout-memo">메모</label>
                         <textarea id="layout-memo" placeholder="연습 포인트를 작성하세요..."></textarea>
                     </div>
-                    <button class="save-btn" onclick="saveLayout()">저장하기</button>
-                    <button class="save-btn" style="margin-top: 10px; background: linear-gradient(145deg, #2196F3, #1976D2);" onclick="saveAsImage()">이미지로 저장</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="save-btn" onclick="saveLayout()">저장하기</button>
+                        <button class="save-btn" style="background: linear-gradient(145deg, #2196F3, #1976D2);" onclick="saveAsImage()">이미지로 저장</button>
+                    </div>
                 </div>
             </div>
 
