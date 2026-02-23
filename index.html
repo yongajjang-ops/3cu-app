@@ -978,7 +978,7 @@
 
             container.innerHTML = layouts.map(layout => {
                 return `
-                    <div class="saved-item">
+                    <div class="saved-item" onclick="loadLayout(${layout.id})" style="cursor: pointer;">
                         <div class="saved-item-content">
                             ${layout.thumbnail ? `<img class="saved-item-thumbnail" src="${layout.thumbnail}" alt="미리보기">` : ''}
                             <div class="saved-item-info">
@@ -987,8 +987,7 @@
                                 ${layout.memo ? `<div class="saved-item-memo">${escapeHtml(layout.memo)}</div>` : ''}
                             </div>
                             <div class="saved-item-buttons">
-                                <button class="item-btn load" onclick="loadLayout(${layout.id})">불러오기</button>
-                                <button class="item-btn delete" onclick="showDeleteModal(${layout.id})">삭제</button>
+                                <button class="item-btn delete" onclick="event.stopPropagation(); showDeleteModal(${layout.id})">삭제</button>
                             </div>
                         </div>
                     </div>
@@ -1033,7 +1032,6 @@
 
             document.getElementById('layout-name').value = layout.name;
             document.getElementById('layout-memo').value = layout.memo || '';
-            document.getElementById('layout-difficulty').value = layout.difficulty;
 
             drawTable();
             switchTab('table');
