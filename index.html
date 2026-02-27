@@ -1068,7 +1068,7 @@
 
             container.innerHTML = layouts.map(layout => {
                 return `
-                    <div class="saved-item" onclick="loadLayout(${layout.id})" style="cursor: pointer;">
+                    <div class="saved-item" onclick="editLayout(${layout.id})" style="cursor: pointer;">
                         <div class="saved-item-content">
                             ${layout.thumbnail ? `<img class="saved-item-thumbnail" src="${layout.thumbnail}" alt="미리보기">` : ''}
                             <div class="saved-item-info">
@@ -1077,7 +1077,6 @@
                                 ${layout.memo ? `<div class="saved-item-memo">${escapeHtml(layout.memo)}</div>` : ''}
                             </div>
                             <div class="saved-item-buttons">
-                                <button class="item-btn edit" onclick="event.stopPropagation(); editLayout(${layout.id})">수정</button>
                                 <button class="item-btn delete" onclick="event.stopPropagation(); showDeleteModal(${layout.id})">삭제</button>
                             </div>
                         </div>
