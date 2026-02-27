@@ -415,6 +415,44 @@
         .modal-btn:active {
             transform: scale(0.98);
         }
+
+        /* 수정 모드 배너 */
+        .edit-mode-banner {
+            background: linear-gradient(145deg, #FF9800, #F57C00);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .edit-mode-banner span {
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .cancel-edit-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .cancel-edit-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 저장 목록 수정 버튼 */
+        .item-btn.edit {
+            background: #FF9800;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -442,6 +480,11 @@
                 <!-- 메모 입력 영역 -->
                 <div class="memo-area">
                     <h3>배치 정보</h3>
+                    <!-- 수정 모드 표시 -->
+                    <div id="edit-mode-banner" class="edit-mode-banner" style="display: none;">
+                        <span id="edit-mode-text">수정 중</span>
+                        <button class="cancel-edit-btn" onclick="cancelEdit()">취소</button>
+                    </div>
                     <div class="input-group">
                         <label for="layout-name">배치 이름</label>
                         <select id="layout-name">
@@ -458,8 +501,9 @@
                         <label for="layout-memo">메모</label>
                         <textarea id="layout-memo" placeholder="연습 포인트를 작성하세요..."></textarea>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="save-btn" onclick="saveLayout()">저장하기</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="save-btn" id="save-btn" onclick="saveLayout()">저장하기</button>
+                        <button class="save-btn" id="save-new-btn" style="display: none; background: linear-gradient(145deg, #9C27B0, #7B1FA2);" onclick="saveAsNew()">새로 저장</button>
                         <button class="save-btn" style="background: linear-gradient(145deg, #2196F3, #1976D2);" onclick="saveAsImage()">이미지로 저장</button>
                     </div>
                 </div>
@@ -532,6 +576,9 @@
             yellow: null,
             white: null
         };
+
+        // 수정 모드 상태
+        let editingLayoutId = null;
 
         // ===== 초기화 =====
         window.onload = function() {
@@ -914,8 +961,13 @@
             selectedBall = null;
             deleteMode = false;
 
+            // 수정 모드 해제
+            editingLayoutId = null;
+            updateEditModeUI(null);
+
             document.querySelectorAll('.ball-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('btn-delete-mode').classList.remove('active');
+            const deleteBtn = document.getElementById('btn-delete-mode');
+            if (deleteBtn) deleteBtn.classList.remove('active');
 
             document.getElementById('layout-name').value = '뒤돌';
             document.getElementById('layout-memo').value = '';
@@ -944,6 +996,37 @@
             tempCtx.drawImage(canvas, 0, 0);
             const thumbnail = tempCanvas.toDataURL('image/png');
 
+            let layouts = JSON.parse(localStorage.getItem('3cu-layouts') || '[]');
+
+            // 수정 모드인 경우 기존 배치 업데이트
+            if (editingLayoutId) {
+                const index = layouts.findIndex(l => l.id === editingLayoutId);
+                if (index !== -1) {
+                    layouts[index] = {
+                        ...layouts[index],
+                        name: name,
+                        memo: memo,
+                        balls: JSON.parse(JSON.stringify(balls)),
+                        date: new Date().toLocaleDateString('ko-KR'),
+                        tableSize: { width: tableWidth, height: tableHeight },
+                        thumbnail: thumbnail
+                    };
+                    localStorage.setItem('3cu-layouts', JSON.stringify(layouts));
+                    loadSavedList();
+
+                    // 수정 모드 종료
+                    editingLayoutId = null;
+                    updateEditModeUI(null);
+
+                    document.getElementById('layout-name').value = '뒤돌';
+                    document.getElementById('layout-memo').value = '';
+
+                    showToast('수정이 저장되었습니다!', 'success');
+                    return;
+                }
+            }
+
+            // 새로 저장
             const layout = {
                 id: Date.now(),
                 name: name,
@@ -954,16 +1037,23 @@
                 thumbnail: thumbnail
             };
 
-            let layouts = JSON.parse(localStorage.getItem('3cu-layouts') || '[]');
             layouts.unshift(layout);
             localStorage.setItem('3cu-layouts', JSON.stringify(layouts));
 
             loadSavedList();
 
-            document.getElementById('layout-name').value = '';
+            document.getElementById('layout-name').value = '뒤돌';
             document.getElementById('layout-memo').value = '';
 
             showToast('저장되었습니다!', 'success');
+        }
+
+        // ===== 새로 저장 (수정 중일 때) =====
+        function saveAsNew() {
+            // 수정 모드 해제 후 새로 저장
+            editingLayoutId = null;
+            updateEditModeUI(null);
+            saveLayout();
         }
 
         // ===== 저장 목록 불러오기 =====
@@ -978,7 +1068,7 @@
 
             container.innerHTML = layouts.map(layout => {
                 return `
-                    <div class="saved-item" onclick="loadLayout(${layout.id})" style="cursor: pointer;">
+                    <div class="saved-item" onclick="editLayout(${layout.id})" style="cursor: pointer;">
                         <div class="saved-item-content">
                             ${layout.thumbnail ? `<img class="saved-item-thumbnail" src="${layout.thumbnail}" alt="미리보기">` : ''}
                             <div class="saved-item-info">
@@ -1001,8 +1091,18 @@
             return div.innerHTML;
         }
 
-        // ===== 배치 불러오기 =====
+        // ===== 배치 불러오기 (보기만) =====
         function loadLayout(id) {
+            loadLayoutData(id, false);
+        }
+
+        // ===== 배치 수정 모드로 불러오기 =====
+        function editLayout(id) {
+            loadLayoutData(id, true);
+        }
+
+        // ===== 배치 데이터 불러오기 (공통) =====
+        function loadLayoutData(id, isEditMode) {
             const layouts = JSON.parse(localStorage.getItem('3cu-layouts') || '[]');
             const layout = layouts.find(l => l.id === id);
 
@@ -1033,9 +1133,53 @@
             document.getElementById('layout-name').value = layout.name;
             document.getElementById('layout-memo').value = layout.memo || '';
 
+            // 수정 모드 설정
+            if (isEditMode) {
+                editingLayoutId = id;
+                updateEditModeUI(layout.name);
+                showToast('수정 모드로 배치를 불러왔습니다', 'success');
+            } else {
+                editingLayoutId = null;
+                updateEditModeUI(null);
+                showToast('배치를 불러왔습니다', 'success');
+            }
+
             drawTable();
             switchTab('table');
-            showToast('배치를 불러왔습니다', 'success');
+        }
+
+        // ===== 수정 모드 UI 업데이트 =====
+        function updateEditModeUI(layoutName) {
+            const banner = document.getElementById('edit-mode-banner');
+            const editText = document.getElementById('edit-mode-text');
+            const saveBtn = document.getElementById('save-btn');
+            const saveNewBtn = document.getElementById('save-new-btn');
+
+            if (layoutName && editingLayoutId) {
+                banner.style.display = 'flex';
+                editText.textContent = `"${layoutName}" 수정 중`;
+                saveBtn.textContent = '수정 저장';
+                saveNewBtn.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+                saveBtn.textContent = '저장하기';
+                saveNewBtn.style.display = 'none';
+            }
+        }
+
+        // ===== 수정 모드 취소 =====
+        function cancelEdit() {
+            editingLayoutId = null;
+            updateEditModeUI(null);
+
+            // 폼 초기화
+            document.getElementById('layout-name').value = '뒤돌';
+            document.getElementById('layout-memo').value = '';
+
+            // 공 초기 위치로 재설정
+            initBallPositions();
+
+            showToast('수정이 취소되었습니다');
         }
 
         // ===== 삭제 모달 =====
