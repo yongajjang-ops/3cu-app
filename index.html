@@ -563,12 +563,9 @@
         // ===== 상태 변수 =====
         let canvas, ctx;
         let tableWidth, tableHeight;
-        let selectedBall = null;
-        let deleteMode = false;
         let draggingBall = null;
         let dragOffset = { x: 0, y: 0 };
         let deleteTargetId = null;
-        let isDragging = false;
 
         // 공 데이터
         let balls = {
@@ -583,7 +580,6 @@
         // ===== 초기화 =====
         window.onload = function() {
             initCanvas();
-            initBallPositions();
             loadSavedList();
         };
 
@@ -834,9 +830,6 @@
             const x = touch.clientX - rect.left;
             const y = touch.clientY - rect.top;
 
-            isDragging = false;
-
-            // 드래그 시작
             const clickedBall = getBallAtPosition(x, y);
             if (clickedBall) {
                 draggingBall = clickedBall;
@@ -846,10 +839,9 @@
         }
 
         function handleTouchMove(e) {
-            e.preventDefault();  // 항상 스크롤 방지
+            e.preventDefault();
             if (!draggingBall) return;
 
-            isDragging = true;
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
             let x = touch.clientX - rect.left - dragOffset.x;
@@ -865,18 +857,12 @@
             drawTable();
         }
 
-        function handleTouchEnd(e) {
+        function handleTouchEnd() {
             draggingBall = null;
-            isDragging = false;
         }
 
         // ===== 마우스 이벤트 처리 =====
         function handleMouseDown(e) {
-            if (selectedBall || deleteMode) {
-                handleCanvasClick(e);
-                return;
-            }
-
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
@@ -886,29 +872,6 @@
                 draggingBall = clickedBall;
                 dragOffset.x = x - balls[clickedBall].x;
                 dragOffset.y = y - balls[clickedBall].y;
-            }
-        }
-
-        function handleCanvasClick(e) {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            if (deleteMode) {
-                const clickedBall = getBallAtPosition(x, y);
-                if (clickedBall) {
-                    balls[clickedBall] = null;
-                    drawTable();
-                    showToast('공이 삭제되었습니다');
-                }
-                return;
-            }
-
-            if (selectedBall && isInsideTable(x, y)) {
-                balls[selectedBall] = { x, y };
-                drawTable();
-                document.getElementById(`btn-${selectedBall}`).classList.remove('active');
-                selectedBall = null;
             }
         }
 
@@ -947,27 +910,13 @@
             return null;
         }
 
-        function isInsideTable(x, y) {
-            const innerBound = BORDER_WIDTH + CUSHION_WIDTH + BALL_RADIUS;
-            return x > innerBound &&
-                   x < tableWidth - innerBound &&
-                   y > innerBound &&
-                   y < tableHeight - innerBound;
-        }
-
-        // ===== 초기화 =====
+        // ===== 테이블 초기화 =====
         function resetTable() {
             balls = { red: null, yellow: null, white: null };
-            selectedBall = null;
-            deleteMode = false;
 
             // 수정 모드 해제
             editingLayoutId = null;
             updateEditModeUI(null);
-
-            document.querySelectorAll('.ball-btn').forEach(btn => btn.classList.remove('active'));
-            const deleteBtn = document.getElementById('btn-delete-mode');
-            if (deleteBtn) deleteBtn.classList.remove('active');
 
             document.getElementById('layout-name').value = '뒤돌';
             document.getElementById('layout-memo').value = '';
