@@ -453,6 +453,40 @@
             background: #FF9800;
             color: white;
         }
+
+        /* 도구 버튼 영역 */
+        .tool-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .tool-btn:active {
+            transform: scale(0.98);
+        }
+
+        .tool-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .tool-btn.clear-lines {
+            background: #f44336;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -475,6 +509,12 @@
                 <!-- 당구 테이블 (세로 방향) -->
                 <div class="table-container">
                     <canvas id="billiardTable"></canvas>
+                </div>
+
+                <!-- 도구 버튼 -->
+                <div class="tool-buttons">
+                    <button class="tool-btn" id="line-mode-btn" onclick="toggleLineMode()">직선 그리기</button>
+                    <button class="tool-btn clear-lines" onclick="clearLines()">선 지우기</button>
                 </div>
 
                 <!-- 메모 입력 영역 -->
@@ -563,12 +603,9 @@
         // ===== 상태 변수 =====
         let canvas, ctx;
         let tableWidth, tableHeight;
-        let selectedBall = null;
-        let deleteMode = false;
         let draggingBall = null;
         let dragOffset = { x: 0, y: 0 };
         let deleteTargetId = null;
-        let isDragging = false;
 
         // 공 데이터
         let balls = {
@@ -577,13 +614,17 @@
             white: null
         };
 
+        // 직선 데이터
+        let lines = [];
+        let isLineMode = false;
+        let currentLine = null;
+
         // 수정 모드 상태
         let editingLayoutId = null;
 
         // ===== 초기화 =====
         window.onload = function() {
             initCanvas();
-            initBallPositions();
             loadSavedList();
         };
 
@@ -710,7 +751,10 @@
             // 6. 다이아몬드 마커
             drawDiamonds();
 
-            // 7. 공 그리기
+            // 7. 직선 그리기
+            drawLines();
+
+            // 8. 공 그리기
             drawBalls();
         }
 
@@ -826,6 +870,50 @@
             ctx.stroke();
         }
 
+        // ===== 직선 그리기 =====
+        function drawLines() {
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+
+            // 저장된 직선들 그리기
+            for (const line of lines) {
+                ctx.beginPath();
+                ctx.moveTo(line.startX, line.startY);
+                ctx.lineTo(line.endX, line.endY);
+                ctx.stroke();
+            }
+
+            // 현재 그리고 있는 직선
+            if (currentLine) {
+                ctx.beginPath();
+                ctx.moveTo(currentLine.startX, currentLine.startY);
+                ctx.lineTo(currentLine.endX, currentLine.endY);
+                ctx.stroke();
+            }
+        }
+
+        // 직선 모드 토글
+        function toggleLineMode() {
+            isLineMode = !isLineMode;
+            const btn = document.getElementById('line-mode-btn');
+            if (isLineMode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+
+        // 직선 지우기 (하나씩)
+        function clearLines() {
+            if (lines.length === 0) {
+                showToast('지울 직선이 없습니다');
+                return;
+            }
+            lines.pop();
+            drawTable();
+        }
+
         // ===== 터치 이벤트 처리 =====
         function handleTouchStart(e) {
             e.preventDefault();
@@ -834,9 +922,12 @@
             const x = touch.clientX - rect.left;
             const y = touch.clientY - rect.top;
 
-            isDragging = false;
+            // 직선 모드
+            if (isLineMode) {
+                currentLine = { startX: x, startY: y, endX: x, endY: y };
+                return;
+            }
 
-            // 드래그 시작
             const clickedBall = getBallAtPosition(x, y);
             if (clickedBall) {
                 draggingBall = clickedBall;
@@ -846,12 +937,20 @@
         }
 
         function handleTouchMove(e) {
-            e.preventDefault();  // 항상 스크롤 방지
-            if (!draggingBall) return;
-
-            isDragging = true;
+            e.preventDefault();
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
+
+            // 직선 모드
+            if (isLineMode && currentLine) {
+                currentLine.endX = touch.clientX - rect.left;
+                currentLine.endY = touch.clientY - rect.top;
+                drawTable();
+                return;
+            }
+
+            if (!draggingBall) return;
+
             let x = touch.clientX - rect.left - dragOffset.x;
             let y = touch.clientY - rect.top - dragOffset.y;
 
@@ -865,21 +964,35 @@
             drawTable();
         }
 
-        function handleTouchEnd(e) {
+        function handleTouchEnd() {
+            // 직선 모드
+            if (isLineMode && currentLine) {
+                // 최소 길이 확인 (너무 짧은 선은 무시)
+                const dx = currentLine.endX - currentLine.startX;
+                const dy = currentLine.endY - currentLine.startY;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                if (length > 5) {
+                    lines.push({ ...currentLine });
+                }
+                currentLine = null;
+                drawTable();
+                return;
+            }
+
             draggingBall = null;
-            isDragging = false;
         }
 
         // ===== 마우스 이벤트 처리 =====
         function handleMouseDown(e) {
-            if (selectedBall || deleteMode) {
-                handleCanvasClick(e);
-                return;
-            }
-
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
+
+            // 직선 모드
+            if (isLineMode) {
+                currentLine = { startX: x, startY: y, endX: x, endY: y };
+                return;
+            }
 
             const clickedBall = getBallAtPosition(x, y);
             if (clickedBall) {
@@ -889,33 +1002,19 @@
             }
         }
 
-        function handleCanvasClick(e) {
+        function handleMouseMove(e) {
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
 
-            if (deleteMode) {
-                const clickedBall = getBallAtPosition(x, y);
-                if (clickedBall) {
-                    balls[clickedBall] = null;
-                    drawTable();
-                    showToast('공이 삭제되었습니다');
-                }
+            // 직선 모드
+            if (isLineMode && currentLine) {
+                currentLine.endX = e.clientX - rect.left;
+                currentLine.endY = e.clientY - rect.top;
+                drawTable();
                 return;
             }
 
-            if (selectedBall && isInsideTable(x, y)) {
-                balls[selectedBall] = { x, y };
-                drawTable();
-                document.getElementById(`btn-${selectedBall}`).classList.remove('active');
-                selectedBall = null;
-            }
-        }
-
-        function handleMouseMove(e) {
             if (!draggingBall) return;
 
-            const rect = canvas.getBoundingClientRect();
             let x = e.clientX - rect.left - dragOffset.x;
             let y = e.clientY - rect.top - dragOffset.y;
 
@@ -930,6 +1029,20 @@
         }
 
         function handleMouseUp() {
+            // 직선 모드
+            if (isLineMode && currentLine) {
+                // 최소 길이 확인 (너무 짧은 선은 무시)
+                const dx = currentLine.endX - currentLine.startX;
+                const dy = currentLine.endY - currentLine.startY;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                if (length > 5) {
+                    lines.push({ ...currentLine });
+                }
+                currentLine = null;
+                drawTable();
+                return;
+            }
+
             draggingBall = null;
         }
 
@@ -947,27 +1060,14 @@
             return null;
         }
 
-        function isInsideTable(x, y) {
-            const innerBound = BORDER_WIDTH + CUSHION_WIDTH + BALL_RADIUS;
-            return x > innerBound &&
-                   x < tableWidth - innerBound &&
-                   y > innerBound &&
-                   y < tableHeight - innerBound;
-        }
-
-        // ===== 초기화 =====
+        // ===== 테이블 초기화 =====
         function resetTable() {
             balls = { red: null, yellow: null, white: null };
-            selectedBall = null;
-            deleteMode = false;
+            lines = [];
 
             // 수정 모드 해제
             editingLayoutId = null;
             updateEditModeUI(null);
-
-            document.querySelectorAll('.ball-btn').forEach(btn => btn.classList.remove('active'));
-            const deleteBtn = document.getElementById('btn-delete-mode');
-            if (deleteBtn) deleteBtn.classList.remove('active');
 
             document.getElementById('layout-name').value = '뒤돌';
             document.getElementById('layout-memo').value = '';
@@ -1007,6 +1107,7 @@
                         name: name,
                         memo: memo,
                         balls: JSON.parse(JSON.stringify(balls)),
+                        lines: JSON.parse(JSON.stringify(lines)),
                         date: new Date().toLocaleDateString('ko-KR'),
                         tableSize: { width: tableWidth, height: tableHeight },
                         thumbnail: thumbnail
@@ -1032,6 +1133,7 @@
                 name: name,
                 memo: memo,
                 balls: JSON.parse(JSON.stringify(balls)),
+                lines: JSON.parse(JSON.stringify(lines)),
                 date: new Date().toLocaleDateString('ko-KR'),
                 tableSize: { width: tableWidth, height: tableHeight },
                 thumbnail: thumbnail
@@ -1130,6 +1232,18 @@
                 } : null
             };
 
+            // 직선 데이터 불러오기
+            if (layout.lines && layout.lines.length > 0) {
+                lines = layout.lines.map(line => ({
+                    startX: line.startX * scaleX,
+                    startY: line.startY * scaleY,
+                    endX: line.endX * scaleX,
+                    endY: line.endY * scaleY
+                }));
+            } else {
+                lines = [];
+            }
+
             document.getElementById('layout-name').value = layout.name;
             document.getElementById('layout-memo').value = layout.memo || '';
 
@@ -1175,6 +1289,9 @@
             // 폼 초기화
             document.getElementById('layout-name').value = '뒤돌';
             document.getElementById('layout-memo').value = '';
+
+            // 직선 초기화
+            lines = [];
 
             // 공 초기 위치로 재설정
             initBallPositions();
