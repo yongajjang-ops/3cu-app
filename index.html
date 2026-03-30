@@ -1365,15 +1365,23 @@
             if (isEditMode) {
                 editingLayoutId = id;
                 updateEditModeUI(layout.name);
-                showToast('수정 모드로 배치를 불러왔습니다', 'success');
             } else {
                 editingLayoutId = null;
                 updateEditModeUI(null);
-                showToast('배치를 불러왔습니다', 'success');
             }
 
-            drawTable();
+            // 먼저 탭을 전환하여 캔버스를 보이게 한 후 그리기
             switchTab('table');
+
+            // 탭 전환 후 캔버스가 보이게 된 다음 그리기 수행
+            requestAnimationFrame(() => {
+                drawTable();
+                if (isEditMode) {
+                    showToast('수정 모드로 배치를 불러왔습니다', 'success');
+                } else {
+                    showToast('배치를 불러왔습니다', 'success');
+                }
+            });
         }
 
         // ===== 수정 모드 UI 업데이트 =====
