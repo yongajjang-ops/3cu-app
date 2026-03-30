@@ -643,6 +643,9 @@
                 document.querySelector('.tab-btn:last-child').classList.add('active');
                 document.getElementById('panel-saved').classList.add('active');
             }
+
+            // 탭 전환 시 스크롤을 맨 위로 이동
+            window.scrollTo(0, 0);
         }
 
         // 캔버스 초기화
@@ -1325,8 +1328,26 @@
             // 먼저 탭을 전환하여 캔버스를 보이게 함
             switchTab('table');
 
-            // 탭 전환 후 캔버스가 보이게 된 다음 스케일 계산 및 그리기 수행
-            requestAnimationFrame(() => {
+            // 탭 전환 후 브라우저가 레이아웃을 완료할 시간을 주고 스케일 계산 및 그리기 수행
+            setTimeout(() => {
+                // 캔버스 컨테이너 크기를 다시 계산
+                const container = canvas.parentElement;
+                const maxWidth = container.clientWidth - 12;
+                const newTableWidth = Math.min(maxWidth, 300);
+                const newTableHeight = newTableWidth / TABLE_RATIO;
+
+                // 전역 변수 업데이트
+                tableWidth = newTableWidth;
+                tableHeight = newTableHeight;
+
+                const scale = tableWidth / (PC_TABLE_WIDTH / 2);
+                BALL_RADIUS = PC_BALL_RADIUS * scale;
+                BORDER_WIDTH = PC_BORDER_WIDTH * scale;
+                CUSHION_WIDTH = PC_CUSHION_WIDTH * scale;
+
+                canvas.width = tableWidth;
+                canvas.height = tableHeight;
+
                 // 현재 캔버스 크기 기준으로 스케일 계산
                 const currentSavedSize = savedSize || { width: tableWidth, height: tableHeight };
                 const scaleX = (currentSavedSize.width > 0) ? (tableWidth / currentSavedSize.width) : 1;
@@ -1390,7 +1411,7 @@
                 } else {
                     showToast('배치를 불러왔습니다', 'success');
                 }
-            });
+            }, 50);
         }
 
         // ===== 수정 모드 UI 업데이트 =====
