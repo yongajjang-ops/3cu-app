@@ -513,8 +513,9 @@
 
                 <!-- 도구 버튼 -->
                 <div class="tool-buttons">
-                    <button class="tool-btn" id="line-mode-btn" onclick="toggleLineMode()">직선 그리기</button>
-                    <button class="tool-btn clear-lines" onclick="clearLines()">선 지우기</button>
+                    <button class="tool-btn" id="line-mode-btn" onclick="toggleLineMode()">직선</button>
+                    <button class="tool-btn" id="draw-mode-btn" onclick="toggleDrawMode()">그리기</button>
+                    <button class="tool-btn clear-lines" onclick="undoDrawing()">지우기</button>
                 </div>
 
                 <!-- 메모 입력 영역 -->
@@ -614,10 +615,12 @@
             white: null
         };
 
-        // 직선 데이터
-        let lines = [];
+        // 그리기 데이터 (직선, 자유 그리기 통합)
+        let drawingHistory = [];
         let isLineMode = false;
+        let isDrawMode = false;
         let currentLine = null;
+        let currentPath = null;
 
         // 수정 모드 상태
         let editingLayoutId = null;
@@ -870,25 +873,53 @@
             ctx.stroke();
         }
 
-        // ===== 직선 그리기 =====
+        // ===== 그리기 (직선 + 자유 그리기) =====
         function drawLines() {
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
             ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
 
-            // 저장된 직선들 그리기
-            for (const line of lines) {
-                ctx.beginPath();
-                ctx.moveTo(line.startX, line.startY);
-                ctx.lineTo(line.endX, line.endY);
-                ctx.stroke();
+            // 저장된 그리기 히스토리
+            for (const item of drawingHistory) {
+                if (item.type === 'line') {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(item.startX, item.startY);
+                    ctx.lineTo(item.endX, item.endY);
+                    ctx.stroke();
+                } else if (item.type === 'freehand') {
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 2;
+                    if (item.points.length > 1) {
+                        ctx.beginPath();
+                        ctx.moveTo(item.points[0].x, item.points[0].y);
+                        for (let i = 1; i < item.points.length; i++) {
+                            ctx.lineTo(item.points[i].x, item.points[i].y);
+                        }
+                        ctx.stroke();
+                    }
+                }
             }
 
             // 현재 그리고 있는 직선
             if (currentLine) {
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(currentLine.startX, currentLine.startY);
                 ctx.lineTo(currentLine.endX, currentLine.endY);
+                ctx.stroke();
+            }
+
+            // 현재 그리고 있는 자유 그리기
+            if (currentPath && currentPath.points.length > 1) {
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(currentPath.points[0].x, currentPath.points[0].y);
+                for (let i = 1; i < currentPath.points.length; i++) {
+                    ctx.lineTo(currentPath.points[i].x, currentPath.points[i].y);
+                }
                 ctx.stroke();
             }
         }
@@ -896,21 +927,33 @@
         // 직선 모드 토글
         function toggleLineMode() {
             isLineMode = !isLineMode;
-            const btn = document.getElementById('line-mode-btn');
-            if (isLineMode) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
+            if (isLineMode) isDrawMode = false;
+            updateToolButtons();
         }
 
-        // 직선 지우기 (하나씩)
-        function clearLines() {
-            if (lines.length === 0) {
-                showToast('지울 직선이 없습니다');
+        // 그리기 모드 토글
+        function toggleDrawMode() {
+            isDrawMode = !isDrawMode;
+            if (isDrawMode) isLineMode = false;
+            updateToolButtons();
+        }
+
+        // 도구 버튼 상태 업데이트
+        function updateToolButtons() {
+            const lineBtn = document.getElementById('line-mode-btn');
+            const drawBtn = document.getElementById('draw-mode-btn');
+
+            lineBtn.classList.toggle('active', isLineMode);
+            drawBtn.classList.toggle('active', isDrawMode);
+        }
+
+        // 지우기 (하나씩)
+        function undoDrawing() {
+            if (drawingHistory.length === 0) {
+                showToast('지울 항목이 없습니다');
                 return;
             }
-            lines.pop();
+            drawingHistory.pop();
             drawTable();
         }
 
@@ -928,6 +971,12 @@
                 return;
             }
 
+            // 그리기 모드
+            if (isDrawMode) {
+                currentPath = { type: 'freehand', points: [{ x, y }] };
+                return;
+            }
+
             const clickedBall = getBallAtPosition(x, y);
             if (clickedBall) {
                 draggingBall = clickedBall;
@@ -940,26 +989,35 @@
             e.preventDefault();
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
 
             // 직선 모드
             if (isLineMode && currentLine) {
-                currentLine.endX = touch.clientX - rect.left;
-                currentLine.endY = touch.clientY - rect.top;
+                currentLine.endX = x;
+                currentLine.endY = y;
+                drawTable();
+                return;
+            }
+
+            // 그리기 모드
+            if (isDrawMode && currentPath) {
+                currentPath.points.push({ x, y });
                 drawTable();
                 return;
             }
 
             if (!draggingBall) return;
 
-            let x = touch.clientX - rect.left - dragOffset.x;
-            let y = touch.clientY - rect.top - dragOffset.y;
+            let bx = x - dragOffset.x;
+            let by = y - dragOffset.y;
 
             const innerBound = BORDER_WIDTH + CUSHION_WIDTH + BALL_RADIUS;
-            x = Math.max(innerBound, Math.min(tableWidth - innerBound, x));
-            y = Math.max(innerBound, Math.min(tableHeight - innerBound, y));
+            bx = Math.max(innerBound, Math.min(tableWidth - innerBound, bx));
+            by = Math.max(innerBound, Math.min(tableHeight - innerBound, by));
 
-            balls[draggingBall].x = x;
-            balls[draggingBall].y = y;
+            balls[draggingBall].x = bx;
+            balls[draggingBall].y = by;
 
             drawTable();
         }
@@ -967,14 +1025,23 @@
         function handleTouchEnd() {
             // 직선 모드
             if (isLineMode && currentLine) {
-                // 최소 길이 확인 (너무 짧은 선은 무시)
                 const dx = currentLine.endX - currentLine.startX;
                 const dy = currentLine.endY - currentLine.startY;
                 const length = Math.sqrt(dx * dx + dy * dy);
                 if (length > 5) {
-                    lines.push({ ...currentLine });
+                    drawingHistory.push({ type: 'line', ...currentLine });
                 }
                 currentLine = null;
+                drawTable();
+                return;
+            }
+
+            // 그리기 모드
+            if (isDrawMode && currentPath) {
+                if (currentPath.points.length > 2) {
+                    drawingHistory.push(currentPath);
+                }
+                currentPath = null;
                 drawTable();
                 return;
             }
@@ -994,6 +1061,12 @@
                 return;
             }
 
+            // 그리기 모드
+            if (isDrawMode) {
+                currentPath = { type: 'freehand', points: [{ x, y }] };
+                return;
+            }
+
             const clickedBall = getBallAtPosition(x, y);
             if (clickedBall) {
                 draggingBall = clickedBall;
@@ -1004,26 +1077,35 @@
 
         function handleMouseMove(e) {
             const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
 
             // 직선 모드
             if (isLineMode && currentLine) {
-                currentLine.endX = e.clientX - rect.left;
-                currentLine.endY = e.clientY - rect.top;
+                currentLine.endX = x;
+                currentLine.endY = y;
+                drawTable();
+                return;
+            }
+
+            // 그리기 모드
+            if (isDrawMode && currentPath) {
+                currentPath.points.push({ x, y });
                 drawTable();
                 return;
             }
 
             if (!draggingBall) return;
 
-            let x = e.clientX - rect.left - dragOffset.x;
-            let y = e.clientY - rect.top - dragOffset.y;
+            let bx = x - dragOffset.x;
+            let by = y - dragOffset.y;
 
             const innerBound = BORDER_WIDTH + CUSHION_WIDTH + BALL_RADIUS;
-            x = Math.max(innerBound, Math.min(tableWidth - innerBound, x));
-            y = Math.max(innerBound, Math.min(tableHeight - innerBound, y));
+            bx = Math.max(innerBound, Math.min(tableWidth - innerBound, bx));
+            by = Math.max(innerBound, Math.min(tableHeight - innerBound, by));
 
-            balls[draggingBall].x = x;
-            balls[draggingBall].y = y;
+            balls[draggingBall].x = bx;
+            balls[draggingBall].y = by;
 
             drawTable();
         }
@@ -1031,14 +1113,23 @@
         function handleMouseUp() {
             // 직선 모드
             if (isLineMode && currentLine) {
-                // 최소 길이 확인 (너무 짧은 선은 무시)
                 const dx = currentLine.endX - currentLine.startX;
                 const dy = currentLine.endY - currentLine.startY;
                 const length = Math.sqrt(dx * dx + dy * dy);
                 if (length > 5) {
-                    lines.push({ ...currentLine });
+                    drawingHistory.push({ type: 'line', ...currentLine });
                 }
                 currentLine = null;
+                drawTable();
+                return;
+            }
+
+            // 그리기 모드
+            if (isDrawMode && currentPath) {
+                if (currentPath.points.length > 2) {
+                    drawingHistory.push(currentPath);
+                }
+                currentPath = null;
                 drawTable();
                 return;
             }
@@ -1063,7 +1154,7 @@
         // ===== 테이블 초기화 =====
         function resetTable() {
             balls = { red: null, yellow: null, white: null };
-            lines = [];
+            drawingHistory = [];
 
             // 수정 모드 해제
             editingLayoutId = null;
@@ -1107,7 +1198,7 @@
                         name: name,
                         memo: memo,
                         balls: JSON.parse(JSON.stringify(balls)),
-                        lines: JSON.parse(JSON.stringify(lines)),
+                        drawingHistory: JSON.parse(JSON.stringify(drawingHistory)),
                         date: new Date().toLocaleDateString('ko-KR'),
                         tableSize: { width: tableWidth, height: tableHeight },
                         thumbnail: thumbnail
@@ -1133,7 +1224,7 @@
                 name: name,
                 memo: memo,
                 balls: JSON.parse(JSON.stringify(balls)),
-                lines: JSON.parse(JSON.stringify(lines)),
+                drawingHistory: JSON.parse(JSON.stringify(drawingHistory)),
                 date: new Date().toLocaleDateString('ko-KR'),
                 tableSize: { width: tableWidth, height: tableHeight },
                 thumbnail: thumbnail
@@ -1232,16 +1323,39 @@
                 } : null
             };
 
-            // 직선 데이터 불러오기
-            if (layout.lines && layout.lines.length > 0) {
-                lines = layout.lines.map(line => ({
+            // 그리기 데이터 불러오기
+            if (layout.drawingHistory && layout.drawingHistory.length > 0) {
+                drawingHistory = layout.drawingHistory.map(item => {
+                    if (item.type === 'line') {
+                        return {
+                            type: 'line',
+                            startX: item.startX * scaleX,
+                            startY: item.startY * scaleY,
+                            endX: item.endX * scaleX,
+                            endY: item.endY * scaleY
+                        };
+                    } else if (item.type === 'freehand') {
+                        return {
+                            type: 'freehand',
+                            points: item.points.map(p => ({
+                                x: p.x * scaleX,
+                                y: p.y * scaleY
+                            }))
+                        };
+                    }
+                    return item;
+                });
+            } else if (layout.lines && layout.lines.length > 0) {
+                // 이전 버전 호환 (lines 배열)
+                drawingHistory = layout.lines.map(line => ({
+                    type: 'line',
                     startX: line.startX * scaleX,
                     startY: line.startY * scaleY,
                     endX: line.endX * scaleX,
                     endY: line.endY * scaleY
                 }));
             } else {
-                lines = [];
+                drawingHistory = [];
             }
 
             document.getElementById('layout-name').value = layout.name;
@@ -1251,15 +1365,23 @@
             if (isEditMode) {
                 editingLayoutId = id;
                 updateEditModeUI(layout.name);
-                showToast('수정 모드로 배치를 불러왔습니다', 'success');
             } else {
                 editingLayoutId = null;
                 updateEditModeUI(null);
-                showToast('배치를 불러왔습니다', 'success');
             }
 
-            drawTable();
+            // 먼저 탭을 전환하여 캔버스를 보이게 한 후 그리기
             switchTab('table');
+
+            // 탭 전환 후 캔버스가 보이게 된 다음 그리기 수행
+            requestAnimationFrame(() => {
+                drawTable();
+                if (isEditMode) {
+                    showToast('수정 모드로 배치를 불러왔습니다', 'success');
+                } else {
+                    showToast('배치를 불러왔습니다', 'success');
+                }
+            });
         }
 
         // ===== 수정 모드 UI 업데이트 =====
@@ -1290,8 +1412,8 @@
             document.getElementById('layout-name').value = '뒤돌';
             document.getElementById('layout-memo').value = '';
 
-            // 직선 초기화
-            lines = [];
+            // 그리기 초기화
+            drawingHistory = [];
 
             // 공 초기 위치로 재설정
             initBallPositions();
