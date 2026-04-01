@@ -159,17 +159,23 @@
             resize: none;
         }
 
+        .save-buttons-row {
+            display: flex;
+            gap: 8px;
+        }
+
         .save-btn {
-            width: 100%;
-            padding: 16px;
+            flex: 1;
+            padding: 14px 8px;
             background: linear-gradient(145deg, #4CAF50, #388E3C);
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s ease;
+            white-space: nowrap;
         }
 
         .save-btn:active {
@@ -583,10 +589,10 @@
                         <label for="layout-memo">메모</label>
                         <textarea id="layout-memo" placeholder="연습 포인트를 작성하세요..."></textarea>
                     </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="save-btn" id="save-btn" onclick="saveLayout()">저장하기</button>
-                        <button class="save-btn" id="save-new-btn" style="display: none; background: linear-gradient(145deg, #9C27B0, #7B1FA2);" onclick="saveAsNew()">새로 저장</button>
-                        <button class="save-btn" style="background: linear-gradient(145deg, #2196F3, #1976D2);" onclick="saveAsImage()">이미지로 저장</button>
+                    <div class="save-buttons-row">
+                        <button class="save-btn" id="save-btn" onclick="saveLayout()">저장</button>
+                        <button class="save-btn" id="save-new-btn" style="display: none; background: linear-gradient(145deg, #9C27B0, #7B1FA2);" onclick="saveAsNew()">새로저장</button>
+                        <button class="save-btn" style="background: linear-gradient(145deg, #2196F3, #1976D2);" onclick="saveAsImage()">이미지</button>
                     </div>
                 </div>
             </div>
@@ -1506,11 +1512,11 @@
             if (layoutName && editingLayoutId) {
                 banner.style.display = 'flex';
                 editText.textContent = `"${layoutName}" 수정 중`;
-                saveBtn.textContent = '수정 저장';
+                saveBtn.textContent = '수정';
                 saveNewBtn.style.display = 'block';
             } else {
                 banner.style.display = 'none';
-                saveBtn.textContent = '저장하기';
+                saveBtn.textContent = '저장';
                 saveNewBtn.style.display = 'none';
             }
         }
