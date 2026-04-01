@@ -488,23 +488,16 @@
             color: white;
         }
 
-        /* 색상 선택 영역 */
-        .color-picker-container {
+        /* 색상 선택 영역 (인라인) */
+        .color-picker-inline {
             display: none;
             gap: 6px;
-            margin-bottom: 12px;
             align-items: center;
-            flex-wrap: wrap;
+            margin-left: 8px;
         }
 
-        .color-picker-container.show {
+        .color-picker-inline.show {
             display: flex;
-        }
-
-        .color-picker-label {
-            color: #aaa;
-            font-size: 12px;
-            margin-right: 4px;
         }
 
         .color-btn {
@@ -529,8 +522,6 @@
         .color-btn.red { background: #ff4444; }
         .color-btn.yellow { background: #ffdd00; }
         .color-btn.green { background: #00ff00; }
-        .color-btn.blue { background: #4488ff; }
-        .color-btn.purple { background: #cc66ff; }
     </style>
 </head>
 <body>
@@ -560,17 +551,12 @@
                     <button class="tool-btn" id="line-mode-btn" onclick="toggleLineMode()">직선</button>
                     <button class="tool-btn" id="draw-mode-btn" onclick="toggleDrawMode()">그리기</button>
                     <button class="tool-btn clear-lines" onclick="undoDrawing()">지우기</button>
-                </div>
-
-                <!-- 색상 선택 -->
-                <div class="color-picker-container" id="color-picker">
-                    <span class="color-picker-label">색상:</span>
-                    <button class="color-btn white active" onclick="selectColor('#ffffff', this)"></button>
-                    <button class="color-btn red" onclick="selectColor('#ff4444', this)"></button>
-                    <button class="color-btn yellow" onclick="selectColor('#ffdd00', this)"></button>
-                    <button class="color-btn green" onclick="selectColor('#00ff00', this)"></button>
-                    <button class="color-btn blue" onclick="selectColor('#4488ff', this)"></button>
-                    <button class="color-btn purple" onclick="selectColor('#cc66ff', this)"></button>
+                    <div id="color-picker" class="color-picker-inline">
+                        <button class="color-btn white active" onclick="selectColor('#ffffff', this)"></button>
+                        <button class="color-btn red" onclick="selectColor('#ff4444', this)"></button>
+                        <button class="color-btn yellow" onclick="selectColor('#ffdd00', this)"></button>
+                        <button class="color-btn green" onclick="selectColor('#00ff00', this)"></button>
+                    </div>
                 </div>
 
                 <!-- 메모 입력 영역 -->
